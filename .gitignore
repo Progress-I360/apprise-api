@@ -73,3 +73,4 @@ docker-compose.yml
 
 # Apprise Gateway Variable/Test Configuration
 apprise_gw/var/*
+.venv

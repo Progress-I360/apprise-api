@@ -14,24 +14,11 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Check pushing to Docker Hub
-        id: push-other-places
-        # Only push to Dockerhub from the main repo
-        # Otherwise forks would require a Docker Hub account and secrets setup
-        run: |
-          if [[ ${{ github.repository_owner }} == "caronc" ]] ; then
-            echo "Enabling DockerHub image push"
-            echo "enable=true" >> $GITHUB_OUTPUT
-          else
-            echo "Not pushing to DockerHub"
-            echo "enable=false" >> $GITHUB_OUTPUT
-          fi
-
-      # Mostly for forks, set an output package name for ghcr.io using the repo name
+      # Set the GitHub Container Registry repository name for the current organization
       - name: Set ghcr repository name
         id: set-ghcr-repository
         run: |
-          ghcr_name=$(echo "${{ github.repository_owner }}/apprise" | awk '{ print tolower($0) }')
+          ghcr_name=$(echo "${{ github.repository_owner }}/apprise-api" | awk '{ print tolower($0) }')
           echo "Name is ${ghcr_name}"
           echo "ghcr-repository=${ghcr_name}" >> $GITHUB_OUTPUT
 
@@ -41,7 +28,6 @@ jobs:
         with:
           images: |
             ghcr.io/${{ steps.set-ghcr-repository.outputs.ghcr-repository }}
-            name=docker.io/caronc/apprise,enable=${{ steps.push-other-places.outputs.enable }}
           tags: |
             type=semver,event=tag,pattern={{version}}
             type=semver,event=tag,pattern={{major}}.{{minor}}
@@ -52,14 +38,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
-      - name: Login to DockerHub
-        uses: docker/login-action@v3
-        # Don't attempt to login is not pushing to Docker Hub
-        if: steps.push-other-places.outputs.enable == 'true'
-        with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
 
       - name: Login to GitHub Container Registry
         uses: docker/login-action@v3
@@ -76,3 +54,30 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
+
+      - name: Run Trivy vulnerability scanner
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ghcr.io/${{ steps.set-ghcr-repository.outputs.ghcr-repository }}:latest
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload Trivy scan results to GitHub Security tab
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: 'trivy-results.sarif'
+
+      - name: Run Grype vulnerability scanner
+        if: github.event_name != 'pull_request'
+        uses: anchore/scan-action@v4
+        id: grype
+        with:
+          image: ghcr.io/${{ steps.set-ghcr-repository.outputs.ghcr-repository }}:latest
+
+      - name: Upload Grype scan results to GitHub Security tab
+        if: github.event_name != 'pull_request'
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.grype.outputs.sarif }}
