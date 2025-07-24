@@ -2,9 +2,14 @@ name: Build Apprise API Image
 
 on:
   push:
-    branches: master
+    branches: ["*"]
     tags:
       - v*
+  pull_request:
+    branches: ["master"]
+
+  # Allow job to be triggered manually.
+  workflow_dispatch:
 
 jobs:
   buildx:
