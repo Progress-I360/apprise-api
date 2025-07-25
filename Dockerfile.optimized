@@ -45,7 +45,7 @@ COPY apprise_api/static /usr/share/nginx/html/s/
 COPY apprise_api/etc/nginx.conf /etc/nginx/nginx.conf
 
 # Final runtime stage - distroless for maximum security and minimal size
-FROM gcr.io/distroless/python3-debian12:nonroot AS runtime-distroless
+FROM gcr.io/distroless/python3:nonroot AS runtime-distroless
 
 # Copy Python virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
@@ -141,7 +141,7 @@ EXPOSE 8000
 CMD ["gunicorn", "-c", "/opt/apprise/webapp/gunicorn.conf.py", "-b", "0.0.0.0:8000", "core.wsgi:application"]
 
 # Distroless API-only runtime stage - maximum security, minimal size, no UI
-FROM gcr.io/distroless/python3-debian12:nonroot AS api-only-distroless
+FROM gcr.io/distroless/python3:nonroot AS api-only-distroless
 
 # Copy Python virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv
@@ -163,3 +163,35 @@ EXPOSE 8000
 # Note: distroless doesn't support shell, so we use Python executable directly
 ENTRYPOINT ["/opt/venv/bin/python"]
 CMD ["-m", "gunicorn", "-c", "/opt/apprise/webapp/gunicorn.conf.py", "-b", "0.0.0.0:8000", "core.wsgi:application"]
+
+# Ultra-minimal Alpine-based API-only stage - alternative to distroless with fewer vulnerabilities
+FROM python:3.12-alpine AS api-only-alpine
+
+# Install only essential runtime dependencies
+RUN apk add --no-cache \
+        curl \
+        && addgroup -g 65532 -S nonroot \
+        && adduser -u 65532 -S nonroot -G nonroot
+
+# Copy Python virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application (excluding UI components)
+COPY --from=builder /tmp/webapp /opt/apprise/webapp/
+
+# Make sure to use venv
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONPATH="/opt/apprise/webapp"
+ENV APPRISE_CONFIG_DIR=/config
+ENV APPRISE_ATTACH_DIR=/attach
+ENV APPRISE_PLUGIN_PATHS=/plugin
+
+# Switch to non-root user
+USER nonroot
+WORKDIR /opt/apprise
+EXPOSE 8000
+
+# Run gunicorn directly (override gevent worker with sync for Alpine compatibility)
+CMD ["gunicorn", "--worker-class", "sync", "--workers", "2", "--timeout", "300", "--bind", "0.0.0.0:8000", "--access-logfile", "-", "--error-logfile", "-", "core.wsgi:application"]
