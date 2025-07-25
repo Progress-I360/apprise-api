@@ -70,6 +70,19 @@ jobs:
           format: 'sarif'
           output: 'trivy-results.sarif'
 
+      - name: Display Trivy scan results
+        if: github.event_name != 'pull_request' && always()
+        run: |
+          echo "Trivy scan completed"
+          if [ -f "trivy-results.sarif" ]; then
+            echo "SARIF file generated successfully"
+            echo "Vulnerability summary:"
+            cat "trivy-results.sarif" | jq -r '.runs[0].results | length' || echo "Could not parse SARIF results"
+            echo "Results will be uploaded to GitHub Security tab"
+          else
+            echo "No SARIF file found"
+          fi
+
       - name: Upload Trivy scan results to GitHub Security tab
         if: github.event_name != 'pull_request'
         uses: github/codeql-action/upload-sarif@v3
@@ -83,8 +96,21 @@ jobs:
         with:
           image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
 
+      - name: Display Grype scan results
+        if: github.event_name != 'pull_request' && always()
+        run: |
+          echo "Grype scan completed with exit code: ${{ steps.grype.outcome }}"
+          if [ -f "${{ steps.grype.outputs.sarif }}" ]; then
+            echo "SARIF file generated successfully"
+            echo "Vulnerability summary:"
+            cat "${{ steps.grype.outputs.sarif }}" | jq -r '.runs[0].results | length' || echo "Could not parse SARIF results"
+            echo "Results will be uploaded to GitHub Security tab"
+          else
+            echo "No SARIF file found"
+          fi
+
       - name: Upload Grype scan results to GitHub Security tab
-        if: github.event_name != 'pull_request'
+        if: github.event_name != 'pull_request' && always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: ${{ steps.grype.outputs.sarif }}
