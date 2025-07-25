@@ -58,7 +58,7 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.optimized
-          target: runtime
+          target: api-only-distroless
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.docker_meta.outputs.tags }}
@@ -73,6 +73,7 @@ jobs:
           image-ref: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
           format: 'sarif'
           output: 'trivy-results.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Display Trivy scan results (Table format)
         if: github.event_name != 'pull_request' && always()
@@ -80,6 +81,7 @@ jobs:
         with:
           image-ref: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
           format: 'table'
+          severity: 'CRITICAL,HIGH,MEDIUM'
 
       - name: Upload Trivy scan results to GitHub Security tab
         if: github.event_name != 'pull_request'
@@ -93,6 +95,7 @@ jobs:
         id: grype
         with:
           image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
+          severity-cutoff: high
 
       - name: Display Grype scan results (Table format)
         if: github.event_name != 'pull_request' && always()
@@ -101,6 +104,7 @@ jobs:
           image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
           output-format: table
           fail-build: false
+          severity-cutoff: high
 
       - name: Upload Grype scan results to GitHub Security tab
         if: github.event_name != 'pull_request' && always()

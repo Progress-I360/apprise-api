@@ -100,3 +100,63 @@ VOLUME /attach
 VOLUME /plugin
 EXPOSE 8000
 CMD ["/opt/apprise/webapp/supervisord-startup"]
+
+# API-only runtime stage - no nginx, no static files, no UI dependencies
+FROM base AS api-only
+
+# Install only minimal runtime dependencies
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends \
+        curl \
+        && apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*
+
+# Copy Python virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Make sure to use venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# set work directory
+WORKDIR /opt/apprise
+
+# Copy over Apprise API (excluding static files and templates)
+COPY apprise_api/ webapp/
+
+# Remove UI components we don't need for API-only
+RUN rm -rf webapp/static/ webapp/api/templates/ webapp/etc/nginx.conf webapp/etc/supervisord.conf
+
+VOLUME /config
+VOLUME /attach
+VOLUME /plugin
+EXPOSE 8000
+
+# Run gunicorn directly without nginx or supervisord
+CMD ["gunicorn", "-c", "/opt/apprise/webapp/gunicorn.conf.py", "-b", "0.0.0.0:8000", "core.wsgi:application"]
+
+# Distroless API-only runtime stage - maximum security, minimal size, no UI
+FROM gcr.io/distroless/python3-debian12:nonroot AS api-only-distroless
+
+# Copy Python virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application (excluding UI components)
+COPY --from=builder /tmp/webapp /opt/apprise/webapp/
+
+# Remove UI components we don't need for API-only
+RUN ["/opt/venv/bin/python", "-c", "import shutil, os; [shutil.rmtree(p, ignore_errors=True) for p in ['/opt/apprise/webapp/static', '/opt/apprise/webapp/api/templates', '/opt/apprise/webapp/etc']]"]
+
+# Make sure to use venv
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV APPRISE_CONFIG_DIR=/config
+ENV APPRISE_ATTACH_DIR=/attach
+ENV APPRISE_PLUGIN_PATHS=/plugin
+
+WORKDIR /opt/apprise
+EXPOSE 8000
+
+# Note: distroless doesn't support shell, so we use Python executable directly
+ENTRYPOINT ["/opt/venv/bin/python"]
+CMD ["-m", "gunicorn", "-c", "/opt/apprise/webapp/gunicorn.conf.py", "-b", "0.0.0.0:8000", "core.wsgi:application"]
