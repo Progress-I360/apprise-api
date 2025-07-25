@@ -167,11 +167,11 @@ CMD ["-m", "gunicorn", "-c", "/opt/apprise/webapp/gunicorn.conf.py", "-b", "0.0.
 # Ultra-minimal Alpine-based API-only stage - alternative to distroless with fewer vulnerabilities
 FROM python:3.12-alpine AS api-only-alpine
 
-# Install only essential runtime dependencies
-RUN apk add --no-cache \
-        curl \
-        && addgroup -g 65532 -S nonroot \
-        && adduser -u 65532 -S nonroot -G nonroot
+# Update packages and install essential runtime dependencies
+RUN apk update && apk upgrade && \
+    apk add --no-cache curl && \
+    addgroup -g 65532 -S nonroot && \
+    adduser -u 65532 -S nonroot -G nonroot
 
 # Copy Python virtual environment from builder stage
 COPY --from=builder /opt/venv /opt/venv

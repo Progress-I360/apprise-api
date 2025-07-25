@@ -1,20 +1,45 @@
-name: Build Apprise API Image
+name: Build Apprise API Images
 
 on:
-  push:
-    branches: ["*"]
-    tags:
-      - v*
-  pull_request:
-    branches: ["master"]
+#   push:
+#     branches: ["*"]
+#     tags:
+#       - v*
+#   pull_request:
+#     branches: ["master"]
 
   # Allow job to be triggered manually.
   workflow_dispatch:
+    inputs:
+      build_variant:
+        description: 'Build variant to create'
+        required: true
+        default: 'runtime'
+        type: choice
+        options:
+        - runtime
+        - api-only
+        - runtime-distroless
+        - api-only-distroless
+        - api-only-alpine
 
 jobs:
   buildx:
     name: Build Docker Image
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        variant:
+          - name: "runtime"
+            suffix: ""
+          - name: "api-only"
+            suffix: "-api-only"
+          - name: "runtime-distroless"
+            suffix: "-distroless"
+          - name: "api-only-distroless"
+            suffix: "-api-only-distroless"
+          - name: "api-only-alpine"
+            suffix: "-api-only-alpine"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,12 +59,11 @@ jobs:
           images: |
             ghcr.io/${{ steps.set-ghcr-repository.outputs.ghcr-repository }}
           tags: |
-            type=semver,event=tag,pattern={{version}}
-            type=semver,event=tag,pattern={{major}}.{{minor}}
-            type=edge,branch=master
-            type=ref,event=branch
-            type=sha,prefix={{branch}}-,format=short
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,event=tag,pattern={{version}}${{ matrix.variant.suffix }}
+            type=semver,event=tag,pattern={{major}}.{{minor}}${{ matrix.variant.suffix }}
+            type=edge,branch=master,suffix=${{ matrix.variant.suffix }}
+            type=ref,event=branch,suffix=${{ matrix.variant.suffix }}
+            type=sha,prefix={{branch}}-,format=short,suffix=${{ matrix.variant.suffix }}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
@@ -60,14 +84,13 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.optimized
-          target: api-only-alpine
-          # Use the api-only-alpine target for enhanced security and minimal vulnerabilities
+          target: ${{ matrix.variant.name }}
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.docker_meta.outputs.tags }}
           labels: ${{ steps.docker_meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          cache-from: type=gha,scope=${{ matrix.variant.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.variant.name }}
 
       - name: Run Trivy vulnerability scanner
         if: github.event_name != 'pull_request' && steps.build.outcome == 'success'
@@ -98,7 +121,7 @@ jobs:
         id: grype
         with:
           image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
-          severity-cutoff: high
+          severity-cutoff: medium
 
       - name: Display Grype scan results (Table format)
         if: github.event_name != 'pull_request' && steps.build.outcome == 'success' && always()
@@ -107,7 +130,7 @@ jobs:
           image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
           output-format: table
           fail-build: false
-          severity-cutoff: high
+          severity-cutoff: medium
 
       - name: Upload Grype scan results to GitHub Security tab
         if: github.event_name != 'pull_request' && steps.build.outcome == 'success' && always()
