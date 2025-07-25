@@ -1,8 +1,11 @@
 # Apprise API Docker Build Options
 
-This repository provides multiple optimized Docker build targets for different use cases.
+This repository provides multiple optimized Docker build targets for different use cases.## Recommendations
 
-## Build Targets
+- **For microservices/API-only**: Use `api-only` target
+- **For maximum security + API-only**: Use `api-only-distroless` target (smallest & most secure)
+- **For full web application**: Use `runtime` target
+- **For maximum security + full features**: Use `runtime-distroless` target (but UI will be slower without nginx)Build Targets
 
 ### 1. `runtime` (Default - Full Featured)
 **Complete Apprise API with Web UI**
@@ -27,12 +30,15 @@ docker build -f Dockerfile.optimized --target runtime -t apprise-api:runtime .
 docker build -f Dockerfile.optimized --target api-only -t apprise-api:api-only .
 ```
 
-### 3. `runtime-distroless` (Maximum Security)
-**Minimal distroless image**
+### 3. `runtime-distroless` (Maximum Security, API-Only)
+**Distroless with full features but no nginx**
 - ✅ All API endpoints
 - ✅ Google distroless base (no shell, minimal attack surface)
-- ❌ No nginx/supervisord (requires different startup approach)
+- ❌ No nginx (static files served via Django - slower but works)
+- ❌ No supervisord (direct gunicorn startup)
 - 📦 Size: ~150-250MB
+
+**Note**: While this includes web UI files, without nginx the static files are served by Django which is less efficient. Consider `api-only-distroless` for pure API use.
 
 ```bash
 docker build -f Dockerfile.optimized --target runtime-distroless -t apprise-api:distroless .
