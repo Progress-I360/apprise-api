@@ -77,6 +77,34 @@ docker build -f Dockerfile.optimized --target api-only-alpine -t apprise-api:api
 
 ## Usage Examples
 
+### Docker-Compose Equivalent Commands
+
+If you prefer using `docker build` and `docker run` instead of `docker-compose`, here are the equivalent commands for the docker-compose.yml configuration:
+
+```bash
+# Build (equivalent to: docker-compose build)
+docker build -f Dockerfile.optimized --target api-only-alpine -t apprise-api:stateless .
+
+# Run (equivalent to: docker-compose up -d)
+docker run -d \
+  --name apprise \
+  -p 8000:8000 \
+  -e APPRISE_STATEFUL_MODE=DISABLED \
+  -e APPRISE_ATTACH_SIZE=0 \
+  -e APPRISE_STORAGE_MODE=memory \
+  -e APPRISE_CONFIG_LOCK=yes \
+  apprise-api:stateless
+
+# Stop (equivalent to: docker-compose down)
+docker stop apprise && docker rm apprise
+
+# View logs (equivalent to: docker-compose logs)
+docker logs apprise
+
+# Follow logs (equivalent to: docker-compose logs -f)
+docker logs -f apprise
+```
+
 ### API-Only (Your Use Case)
 ```bash
 # Build API-only image
@@ -95,6 +123,33 @@ curl -X POST http://localhost:8000/notify/ \
     "urls": ["mailto://user:pass@gmail.com"],
     "body": "Test notification from API-only container"
   }'
+```
+
+### API-Only Alpine (Stateless Mode - Equivalent to docker-compose)
+```bash
+# Build API-only Alpine image (equivalent to docker-compose build)
+docker build -f Dockerfile.optimized --target api-only-alpine -t apprise-api:api-only-alpine .
+
+# Run API-only Alpine container with stateless configuration (equivalent to docker-compose up)
+docker run -d \
+  --name apprise \
+  -p 8000:8000 \
+  -e APPRISE_STATEFUL_MODE=DISABLED \
+  -e APPRISE_ATTACH_SIZE=0 \
+  -e APPRISE_STORAGE_MODE=memory \
+  -e APPRISE_CONFIG_LOCK=yes \
+  apprise-api:api-only-alpine
+
+# Test API endpoint (stateless notification)
+curl -X POST http://localhost:8000/notify/ \
+  -H "Content-Type: application/json" \
+  -d '{
+    "urls": ["mailto://user:pass@gmail.com"],
+    "body": "Test notification from stateless Alpine container"
+  }'
+
+# Check status (should show OK with proper stateless configuration)
+curl -X GET -H "Accept: application/json" http://localhost:8000/status
 ```
 
 ### API-Only Distroless (Maximum Security)

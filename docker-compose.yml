@@ -2,7 +2,12 @@ version: '3'
 
 services:
   apprise:
-    build: .
+   # Un-comment the below to use the latest image from GitHub Container Registry
+   # image: ghcr.io/progress-i360/apprise-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: api-only-alpine
     container_name: apprise
     # Environment for using stateless mode
     environment:
