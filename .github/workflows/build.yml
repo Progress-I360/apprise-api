@@ -60,8 +60,8 @@ jobs:
         with:
           context: .
           file: ./Dockerfile.optimized
+          # Target: api-only-alpine - optimized for enhanced security and minimal vulnerabilities
           target: api-only-alpine
-          # Use the api-only-alpine target for enhanced security and minimal vulnerabilities
           platforms: linux/amd64,linux/arm64
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.docker_meta.outputs.tags }}

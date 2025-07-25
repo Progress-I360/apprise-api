@@ -1,12 +1,16 @@
 # Apprise API Docker Build Options
 
-This repository provides multiple optimized Docker build targets for different use cases.## Recommendations
+This repository provides multiple optimized Docker build targets for different use cases.
+
+## Recommendations
 
 - **For microservices/API-only**: Use `api-only` target
 - **For maximum security + fewest vulnerabilities**: Use `api-only-alpine` target (smallest with minimal CVEs)
 - **For maximum security + API-only**: Use `api-only-distroless` target (most secure but may have base image CVEs)
 - **For full web application**: Use `runtime` target
-- **For maximum security + full features**: Use `runtime-distroless` target (but UI will be slower without nginx)Build Targets
+- **For maximum security + full features**: Use `runtime-distroless` target (but UI will be slower without nginx)
+
+## Build Targets
 
 ### 1. `runtime` (Default - Full Featured)
 **Complete Apprise API with Web UI**
@@ -132,7 +136,9 @@ The repository includes automated builds for all variants:
 - `apprise-api:api-only`
 - `apprise-api:distroless`
 - `apprise-api:api-only-distroless`
-- `apprise-api:api-only-alpine`## API Endpoints (Available in All Variants)
+- `apprise-api:api-only-alpine`
+
+## API Endpoints (Available in All Variants)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
