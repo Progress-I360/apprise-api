@@ -38,7 +38,7 @@ jobs:
             type=semver,event=tag,pattern={{major}}.{{minor}}
             type=edge,branch=master
             type=ref,event=branch
-            type=sha,prefix={{branch}}-,format=short
+            type=sha,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Set up QEMU
