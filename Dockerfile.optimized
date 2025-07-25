@@ -1,0 +1,102 @@
+FROM python:3.12-slim AS base
+
+# set version label
+ARG BUILD_DATE
+ARG VERSION
+LABEL build_version="Apprise API version:- ${VERSION} Build-date:- ${BUILD_DATE}"
+LABEL maintainer="Chris-Caron"
+
+# set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV APPRISE_CONFIG_DIR=/config
+ENV APPRISE_ATTACH_DIR=/attach
+ENV APPRISE_PLUGIN_PATHS=/plugin
+
+# Build stage - contains build tools and dependencies
+FROM base AS builder
+
+# Install build dependencies
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends \
+        build-essential \
+        curl \
+        git \
+        && rm -rf /var/lib/apt/lists/*
+
+# Install Python dependencies in a virtual environment
+COPY ./requirements.txt /tmp/requirements.txt
+RUN python -m venv /opt/venv && \
+    /opt/venv/bin/pip install --no-cache-dir --upgrade pip && \
+    /opt/venv/bin/pip install --no-cache-dir -r /tmp/requirements.txt gunicorn supervisor
+
+# Copy application code for any build steps if needed
+COPY apprise_api/ /tmp/webapp/
+
+# Nginx build stage
+FROM nginx:alpine AS nginx-stage
+COPY apprise_api/static /usr/share/nginx/html/s/
+COPY apprise_api/etc/nginx.conf /etc/nginx/nginx.conf
+
+# Final runtime stage - distroless for maximum security and minimal size
+FROM gcr.io/distroless/python3-debian12:nonroot AS runtime-distroless
+
+# Copy Python virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Copy application
+COPY --from=builder /tmp/webapp /opt/apprise/webapp/
+
+# Make sure to use venv
+ENV PATH="/opt/venv/bin:$PATH"
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+ENV APPRISE_CONFIG_DIR=/config
+ENV APPRISE_ATTACH_DIR=/attach
+ENV APPRISE_PLUGIN_PATHS=/plugin
+
+WORKDIR /opt/apprise
+EXPOSE 8000
+
+# Note: distroless doesn't support shell scripts, so you'd need to modify supervisord-startup
+# to be a Python script or use a different entrypoint approach
+ENTRYPOINT ["/opt/venv/bin/python"]
+CMD ["/opt/apprise/webapp/manage.py", "runserver", "0.0.0.0:8000"]
+
+# Alternative runtime stage with minimal debian
+FROM python:3.12-slim AS runtime
+
+# Install only runtime dependencies
+RUN apt-get update -qq && \
+    apt-get install -y -qq --no-install-recommends \
+        nginx \
+        curl \
+        && apt-get clean && \
+        rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* /var/cache/apt/archives/*
+
+# Copy Python virtual environment from builder stage
+COPY --from=builder /opt/venv /opt/venv
+
+# Make sure to use venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy our static content in place
+COPY apprise_api/static /usr/share/nginx/html/s/
+
+# set work directory
+WORKDIR /opt/apprise
+
+# Copy over Apprise API
+COPY apprise_api/ webapp/
+
+# Configuration Permissions (to run nginx as a non-root user)
+RUN umask 0002 && \
+    touch /etc/nginx/server-override.conf && \
+    touch /etc/nginx/location-override.conf && \
+    truncate --size 0 /var/log/*log
+
+VOLUME /config
+VOLUME /attach
+VOLUME /plugin
+EXPOSE 8000
+CMD ["/opt/apprise/webapp/supervisord-startup"]
