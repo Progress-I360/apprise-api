@@ -1,12 +1,12 @@
 name: Tests
 
 on:
-
-  # On which repository actions to trigger the build.
   push:
-    branches: [ master ]
+    branches: ["*"]
+    tags:
+      - v*
   pull_request:
-    branches: [ master ]
+    branches: ["master"]
 
   # Allow job to be triggered manually.
   workflow_dispatch:
@@ -61,7 +61,7 @@ jobs:
     # For saving resources, code style checking is
     # only invoked within the `bare` environment.
     - name: Check code style
-      if: matrix.bare == true
+      # if: matrix.bare == true
       run: |
         flake8 apprise_api --count --show-source --statistics
 

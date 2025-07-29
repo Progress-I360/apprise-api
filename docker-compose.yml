@@ -2,14 +2,25 @@ version: '3'
 
 services:
   apprise:
-    build: .
+   # Un-comment the below to use the latest image from GitHub Container Registry
+   # image: ghcr.io/progress-i360/apprise-api:latest
+    build:
+      context: .
+      dockerfile: Dockerfile.optimized
+      target: api-only-alpine
     container_name: apprise
+    # Environment for using stateless mode
     environment:
-      - APPRISE_STATEFUL_MODE=simple
+      - APPRISE_STATEFUL_MODE=DISABLED
+      - APPRISE_ATTACH_SIZE=0
+      - APPRISE_STORAGE_MODE=memory
+      - APPRISE_CONFIG_LOCK=yes
     ports:
       - 8000:8000
-    volumes:
-      - ./apprise_api:/opt/apprise/webapp:ro
+    # Volumes not required for stateless mode
+    # Uncomment the below if you want to use bind mounts for configuration or attachments
+    # volumes:
+    #   - ./apprise_api:/opt/apprise/webapp:ro
       # if uncommenting the below, you will need to type the following
       # Note: if you opt for bind mount config file consider setting env var APPRISE_STATEFUL_MODE to simple with appropriate file format
       # otherwise the django instance won't have permissions to write
