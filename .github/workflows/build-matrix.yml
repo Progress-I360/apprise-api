@@ -117,7 +117,7 @@ jobs:
 
       - name: Run Grype vulnerability scanner
         if: github.event_name != 'pull_request' && steps.build.outcome == 'success'
-        uses: anchore/scan-action@v4
+        uses: anchore/scan-action@v6
         id: grype
         with:
           image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
@@ -125,7 +125,7 @@ jobs:
 
       - name: Display Grype scan results (Table format)
         if: github.event_name != 'pull_request' && steps.build.outcome == 'success' && always()
-        uses: anchore/scan-action@v4
+        uses: anchore/scan-action@v6
         with:
           image: ${{ fromJSON(steps.docker_meta.outputs.json).tags[0] }}
           output-format: table
