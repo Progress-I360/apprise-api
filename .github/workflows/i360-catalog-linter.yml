@@ -1,0 +1,16 @@
+name: Catalog Info PR Validation
+
+on:
+  push:
+    branches: [ main ]
+    # Only run the workflow if the PR modifies the catalog file
+    paths:
+      - '.i360/catalog-info.yaml'
+
+jobs:
+  lint-backstage-entity:
+    uses: Progress-I360/common-catalog/.github/workflows/i360-catalog-linter-reusable.yml@main
+    with:
+      catalog_file_path: .i360/catalog-info.yaml
+    secrets:
+      repo_access_token: ${{ secrets.COMMON_CATALOG_READONLY_PAT }} 

@@ -1,0 +1,19 @@
+# This file defines the Backstage entities for this repository.
+# Top contributor: caronc (Chris Caron) - 152 commits
+# Last committer: Vignesh Gopalakrishnan <vgopalak@progress.com> (@vgopalakPrgs) on 2025-07-30 (commit: 7f197027)
+#
+apiVersion: backstage.io/v1alpha1
+kind: Component 
+metadata:
+  name: apprise-api
+  title: apprise-api
+  description: A service from the Progress-I360 organization.
+  annotations:
+    github.com/project-slug: Progress-I360/apprise-api
+    github.com/team-slug: Progress-I360/maintainers
+    backstage.io/techdocs-ref: dir:.
+spec:
+  type: service
+  lifecycle: experimental
+  owner: default/unknown 
+  system: default/unknown
