@@ -1,0 +1,25 @@
+name: Publish TechDocs Site
+
+# This workflow calls the reusable TechDocs publisher workflow
+# from the Progress-I360 common-catalog repository
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".i360/docs/**"
+      - ".i360/mkdocs.yml"
+
+jobs:
+  call-techdocs-publisher:
+    uses: Progress-I360/common-catalog/.github/workflows/techdocs-reusable.yml@main
+    with:
+      # entity-namespace must match the catalog-info metadata.namespace: 
+      entity-namespace: 'infra-360'
+      entity-kind: 'component'
+      entity-name: ${{ github.event.repository.name }}
+    secrets:
+      TECHDOCS_S3_BUCKET_NAME: ${{ secrets.TECHDOCS_S3_BUCKET_NAME }}
+      TECHDOCS_AWS_ACCESS_KEY_ID: ${{ secrets.TECHDOCS_AWS_ACCESS_KEY_ID }}
+      TECHDOCS_AWS_SECRET_ACCESS_KEY: ${{ secrets.TECHDOCS_AWS_SECRET_ACCESS_KEY }}
+      AWS_REGION: ${{ secrets.AWS_REGION }}

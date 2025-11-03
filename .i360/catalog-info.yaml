@@ -1,0 +1,61 @@
+# This file is AI generated. Repo owners must verify the contents of this file before approving the pull request.
+# Top contributor: caronc (Chris Caron) - 152 commits
+# Last committer: Vignesh Gopalakrishnan <vgopalak@progress.com> (@vgopalakPrgs) on 2025-07-30 (commit: 7f197027)
+#
+apiVersion: backstage.io/v1alpha1
+kind: Component 
+metadata:
+  name: apprise-api
+  namespace: infra-360
+  title: Apprise API
+  description: |
+    A lightweight notification gateway that provides a user-friendly API to send notifications to 100+ services.
+    This Django-based micro-service enables easy integration for notification delivery across multiple platforms
+    and services within the Progress I360 ecosystem.
+  labels:
+    technology: python
+    framework: django
+    purpose: notifications
+  annotations:
+    github.com/project-slug: Progress-I360/apprise-api
+    github.com/team-slug: Progress-I360/maintainers
+    backstage.io/techdocs-ref: dir:.
+    backstage.io/adr-location: adrs
+  tags:
+    - python
+    - django
+    - notifications
+    - api
+    - microservice
+  links:
+    - url: https://github.com/caronc/apprise
+      title: Upstream Apprise Project
+      icon: github
+spec:
+  type: service
+  lifecycle: production
+  owner: default/wug360
+  system: infra-360/system.notification-management
+  providesApis:
+    - infra-360/apprise-api
+  dependsOn:
+    - resource:infra-360/postgresql
+---
+apiVersion: backstage.io/v1alpha1
+kind: API
+metadata:
+  name: apprise-api
+  namespace: infra-360
+  title: Apprise API
+  description: |
+    REST API for sending notifications through multiple notification services.
+    Supports both stateless notifications and persistent configuration management.
+  annotations:
+    github.com/project-slug: Progress-I360/apprise-api
+spec:
+  type: openapi
+  lifecycle: production
+  owner: default/wug360
+  system: infra-360/system.notification-management
+  definition:
+    $text: ./swagger.yaml

@@ -1,0 +1,7 @@
+site_name: Content
+plugins:
+  - techdocs-core
+markdown_extensions:
+  - admonition
+#nav:
+#  - Getting Started: index.md 
