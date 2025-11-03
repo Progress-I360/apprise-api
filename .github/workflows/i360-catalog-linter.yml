@@ -2,7 +2,9 @@ name: Catalog Info PR Validation
 
 on:
   push:
-    branches: [ main ]
+    branches: 
+      - main
+      - i360-dev-portal
     # Only run the workflow if the PR modifies the catalog file
     paths:
       - '.i360/catalog-info.yaml'

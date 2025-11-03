@@ -15,7 +15,7 @@ jobs:
     uses: Progress-I360/common-catalog/.github/workflows/techdocs-reusable.yml@main
     with:
       # entity-namespace must match the catalog-info metadata.namespace: 
-      entity-namespace: 'default'
+      entity-namespace: 'infra-360'
       entity-kind: 'component'
       entity-name: ${{ github.event.repository.name }}
     secrets:
